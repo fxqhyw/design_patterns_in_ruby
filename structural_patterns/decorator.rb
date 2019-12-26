@@ -4,6 +4,7 @@
 
 class Robot
   attr_reader :model_name, :id, :release_date
+
   def initialize(model_name:, id:, release_date:)
     @model_name = model_name
     @id = id
