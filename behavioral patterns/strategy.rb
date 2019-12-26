@@ -1,55 +1,78 @@
-# frozen_string_literal: true
+# The Context defines the interface of interest to clients.
+class Context
+  # The Context maintains a reference to one of the Strategy objects. The
+  # Context does not know the concrete class of a strategy. It should work with
+  # all strategies via the Strategy interface.
+  attr_writer :strategy
 
-# This pattern is applied if the input data / presentation / output of the data is the same but
-# the logic of data processing before returning to a presentation is different.
-
-require 'base64'
-require 'aes'
-
-class TextMessage
-  attr_accessor :encryptor
-  attr_reader :original_message
-
-  def initialize(original_message, encryptor)
-    @original_message = original_message
-    @encryptor = encryptor
+  # Usually, the Context accepts a strategy through the constructor, but also
+  # provides a setter to change it at runtime.
+  def initialize(strategy)
+    @strategy = strategy
   end
 
-  def encrypt_me
-    encryptor.encrypt(self)
+  # Usually, the Context allows replacing a Strategy object at runtime.
+  def strategy=(strategy)
+    @strategy = strategy
   end
-end
 
-class SimpleEncryptor
-  ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-  ENCODING = 'MOhqm0PnycUZeLdK8YvDCgNfb7FJtiHT52BrxoAkas9RWlXpEujSGI64VzQ31w'
+  # The Context delegates some work to the Strategy object instead of
+  # implementing multiple versions of the algorithm on its own.
+  def do_some_business_logic
+    # ...
 
-  def encrypt(context)
-    context.original_message.tr(ALPHABET, ENCODING)
-  end
-end
+    puts 'Context: Sorting data using the strategy (not sure how it\'ll do it)'
+    result = @strategy.do_algorithm(%w[a b c d e])
+    print result.join(',')
 
-class Base64Encryptor
-  def encrypt(context)
-    Base64.encode64(context.original_message)
+    # ...
   end
 end
 
-class AESEncryptor
-  KEY = 'dsfi434n534df0v0bn23324dfgdfgdf4353454'
-  def encrypt(context)
-    AES.encrypt(context.original_message, KEY)
+# The Strategy interface declares operations common to all supported versions of
+# some algorithm.
+#
+# The Context uses this interface to call the algorithm defined by Concrete
+# Strategies.
+class Strategy
+  # @abstract
+  #
+  # @param [Array] data
+  def do_algorithm(_data)
+    raise NotImplementedError, "#{self.class} has not implemented method '#{__method__}'"
   end
 end
 
-message = TextMessage.new('my secret secret message', SimpleEncryptor.new)
-puts message.encrypt_me
-# eb vmhYmD vmhYmD emvvMPm
+# Concrete Strategies implement the algorithm while following the base Strategy
+# interface. The interface makes them interchangeable in the Context.
 
-message.encryptor = Base64Encryptor.new
-puts message.encrypt_me
-# bXkgc2VjcmV0IHNlY3JldCBtZXNzYWdl
+class ConcreteStrategyA < Strategy
+  # @param [Array] data
+  #
+  # @return [Array]
+  def do_algorithm(data)
+    data.sort
+  end
+end
 
-message.encryptor = AESEncryptor.new
-puts message.encrypt_me
-# 0kr326hFWodI9Xzd42xKBg==$eb6N+Xz4yJngCndUPYVJ7CIEHngqNTG2lFDL1vIocEw=
+class ConcreteStrategyB < Strategy
+  # @param [Array] data
+  #
+  # @return [Array]
+  def do_algorithm(data)
+    data.sort.reverse
+  end
+end
+
+# The client code picks a concrete strategy and passes it to the context. The
+# client should be aware of the differences between strategies in order to make
+# the right choice.
+
+context = Context.new(ConcreteStrategyA.new)
+puts 'Client: Strategy is set to normal sorting.'
+context.do_some_business_logic
+puts "\n\n"
+
+puts 'Client: Strategy is set to reverse sorting.'
+context.strategy = ConcreteStrategyB.new
+context.do_some_business_logic
