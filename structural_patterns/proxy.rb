@@ -2,6 +2,7 @@
 
 # The Proxy can be used to mask the service object's physical location (a Remote proxy),
 # manage access to the service object (a Security proxy), or just lazily initialize the service object (a Virtual proxy)
+
 class Account
   def initialize(balance)
     @balance = balance
